@@ -249,6 +249,27 @@
       txt(ctx, '   ' + m.weather, 528, 162 + i * 34, 12, '#8fa8ba', 'left', false);
     });
     txt(ctx, 'Press 1-6 for briefing. B — buy selected upgrade.', 528, 140 + 6 * 34 + 6, 13, '#cfe8ff', 'left', false);
+    // --- fills the mission-map void: route map + pilot log + next-leg weather ---
+    ctx.fillStyle = 'rgba(143,216,255,0.35)'; ctx.fillRect(528, 368, 324, 2);
+    txt(ctx, 'ROUTE MAP — ISLAND CHAIN', 528, 376, 13, '#ffd24d', 'left', true);
+    var stops = [[545, 420], [605, 406], [665, 422], [725, 408], [785, 424], [845, 410]];
+    ctx.strokeStyle = '#8fd8ff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(stops[0][0], stops[0][1]);
+    for (var si = 1; si < 6; si++) ctx.lineTo(stops[si][0], stops[si][1]);
+    ctx.stroke();
+    stops.forEach(function (p, i) {
+      ctx.fillStyle = i === state.selectedMission ? '#ffd24d' : '#8fd8ff';
+      ctx.beginPath(); ctx.arc(p[0], p[1], i === state.selectedMission ? 8 : 6, 0, Math.PI * 2); ctx.fill();
+      if (i === state.selectedMission) { ctx.strokeStyle = '#ffd24d'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], 12, 0, Math.PI * 2); ctx.stroke(); }
+      txt(ctx, Dawn.MISSIONS[i].code, p[0], 434, 11, '#cfe8ff', 'center', true);
+    });
+    txt(ctx, 'PILOT LOG — LAST 3 SORTIES', 528, 452, 12, '#8fd8ff', 'left', true);
+    [4, 3, 2].forEach(function (mi, k) {
+      txt(ctx, Dawn.MISSIONS[mi].code + ' ' + Dawn.MISSIONS[mi].name + ' — ' + (state.grades[mi] || '—') + ' — ' + (state.scores[mi] || 0) + ' pts', 528, 468 + k * 15, 12, '#fff', 'left', false);
+    });
+    var nm = Dawn.MISSIONS[state.selectedMission];
+    txt(ctx, 'NEXT LEG — ' + nm.code + ' ' + nm.name, 528, 518, 12, '#ffd24d', 'left', true);
+    txt(ctx, nm.weather + '  •  ' + nm.time + 's  •  ' + nm.reward + ' cr reward', 528, 534, 12, '#cfe8ff', 'left', false);
     panel(ctx, 900, 100, 340, 460, 'UPGRADES — 7');
     Dawn.UPGRADES.forEach(function (u, i) {
       var lv = state.upgrades[u.id] || 0;

@@ -22,7 +22,7 @@
     }
     if (opts.enemyPos) f.enemies.forEach(function (e, i) { if (opts.enemyPos[i]) { e.x = opts.enemyPos[i][0]; e.y = opts.enemyPos[i][1]; } });
     if (opts.escortPos && f.escort) { f.escort.x = opts.escortPos[0]; f.escort.y = opts.escortPos[1]; }
-    if (opts.explosion) f.explosions.push({ x: 820, y: 240, t: 0.4, big: false });
+    if (opts.explosion) f.explosions.push({ x: 340, y: 180, t: 0.4, big: false }); // destroyed top-left bandit — far from the escort seaplane (900,170)
     if (opts.ghost) { f.enemies.forEach(function (e) { e.x = 700; e.y = 260; }); }
     s.dialogue = opts.dialogue || s.dialogue;
     s.screen = 'flight'; s.paused = false;
