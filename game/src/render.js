@@ -88,14 +88,24 @@
       }
       ctx.restore();
     });
-    // enemies
+    // enemies (posed = staged shots only: rot/scale/flip set by shots.js; gameplay enemies draw exactly as before)
     f.enemies.forEach(function (e) {
       if (!e.alive) return;
       var spr = e.ghost ? 'jet-ghost.png' : 'jet-enemy.png';
-      drawImg(ctx, img(spr), e.x - 70, e.y - 40, 140, 80);
-      ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(e.x - 34, e.y - 64, 68, 18);
-      txt(ctx, e.ghost ? 'GHOST' : 'BANDIT', e.x - 32, e.y - 62, 13, e.ghost ? '#e8e8f2' : '#ff9a8a', 'left', true);
-      bar(ctx, e.x - 40, e.y + 46, 80, 9, e.hp / (e.ghost ? 5 : 2), '#ff5a4a', '');
+      var posed = !!(e.rot || e.scale || e.flip);
+      if (posed) {
+        var sc = e.scale || 1, rot = e.rot || 0, fl = e.flip || 1;
+        ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(rot); ctx.scale(fl * sc, sc);
+        drawImg(ctx, img(spr), -70, -40, 140, 80);
+        ctx.restore();
+      } else drawImg(ctx, img(spr), e.x - 70, e.y - 40, 140, 80);
+      // rotated sprite corners stick out: lift label/bar clear of the sprite, keep label below the compass strip, bar above the dialogue box
+      var lift = posed ? Math.abs(Math.sin(e.rot || 0)) * 36 : 0;
+      var ly = posed ? Math.max(e.y - 64 - lift, 104) : e.y - 64;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(e.x - 34, ly, 68, 18);
+      txt(ctx, e.ghost ? 'GHOST' : 'BANDIT', e.x - 32, ly + 2, 13, e.ghost ? '#e8e8f2' : '#ff9a8a', 'left', true);
+      var by = posed ? Math.min(e.y + 46 + lift, 471) : e.y + 46;
+      bar(ctx, e.x - 40, by, 80, 9, e.hp / (e.ghost ? 5 : 2), '#ff5a4a', '');
     });
     // boats
     f.boats.forEach(function (b) {
@@ -104,11 +114,26 @@
       ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(b.x - 44, b.y - 32, 88, 18);
       txt(ctx, 'RAIDER BOAT', b.x - 42, b.y - 30, 12, '#ff9a8a', 'left', true);
     });
-    // missiles
+    // missiles (staged shot 3: long white trail aimed at the lock target + MISSILE label)
     f.missilesFired.forEach(function (mm) {
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(mm.x - 26, mm.y + 14); ctx.lineTo(mm.x, mm.y); ctx.stroke();
-      ctx.fillStyle = '#ffd24d'; ctx.beginPath(); ctx.arc(mm.x, mm.y, 5, 0, Math.PI * 2); ctx.fill();
+      if (f.bigLock && mm.target) {
+        var dx = mm.x - mm.target.x, dy = mm.y - mm.target.y, dd = Math.hypot(dx, dy) || 1;
+        var tx = mm.x + dx / dd * 85, ty = mm.y + dy / dd * 85;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(mm.x, mm.y); ctx.stroke();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(mm.x, mm.y); ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = '#ffd24d'; ctx.beginPath(); ctx.arc(mm.x, mm.y, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(mm.x, mm.y, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(756, 326, 74, 18);
+        txt(ctx, 'MISSILE', 760, 328, 13, '#ffd24d', 'left', true);
+      } else {
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(mm.x - 26, mm.y + 14); ctx.lineTo(mm.x, mm.y); ctx.stroke();
+        ctx.fillStyle = '#ffd24d'; ctx.beginPath(); ctx.arc(mm.x, mm.y, 5, 0, Math.PI * 2); ctx.fill();
+      }
     });
     // explosions (additive sprite)
     f.explosions.forEach(function (ex) {
@@ -192,14 +217,24 @@
     box(ctx, 1032, 422, 190, 64, 'rgba(8,14,22,0.82)', '#7a8a9a');
     txt(ctx, 'TIME ' + Math.max(0, Math.ceil(f.timeLeft)) + 's', 1048, 434, 16, '#fff', 'left', true);
     txt(ctx, 'SCORE ' + f.score, 1048, 458, 16, '#ffd24d', 'left', true);
-    // lock bracket centre
-    var cx = 640, cy = 300, L = 46 + (1 - f.lock) * 30;
-    ctx.strokeStyle = f.lock >= 1 ? '#ff3b30' : '#7fe0ff'; ctx.lineWidth = 3;
-    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (c) {
-      ctx.beginPath(); ctx.moveTo(cx + c[0] * L, cy + c[1] * (L - 18)); ctx.lineTo(cx + c[0] * L, cy + c[1] * L); ctx.lineTo(cx + c[0] * (L - 18), cy + c[1] * L); ctx.stroke();
-    });
-    if (f.lockTarget && f.lockTarget.alive) {
-      txt(ctx, 'LOCK ' + Math.round(f.lock * 100) + '% — ' + Math.round(Math.hypot(f.lockTarget.x - f.px, f.lockTarget.y - f.py)) + 'm', cx - 90, cy - L - 44, 14, f.lock >= 1 ? '#ff5a4a' : '#fff', 'left', true);
+    // lock bracket centre (staged shot 3: big red LOCK-FIRE bracket on the target; otherwise the standard centre bracket)
+    if (f.bigLock && f.lockTarget && f.lockTarget.alive) {
+      var bx = f.lockTarget.x, byy = f.lockTarget.y, BL = 80;
+      ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 4;
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (c) {
+        ctx.beginPath(); ctx.moveTo(bx + c[0] * BL, byy + c[1] * (BL - 26)); ctx.lineTo(bx + c[0] * BL, byy + c[1] * BL); ctx.lineTo(bx + c[0] * (BL - 26), byy + c[1] * BL); ctx.stroke();
+      });
+      ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(bx - 140, byy - BL - 34, 280, 26);
+      txt(ctx, '◆ LOCK 100% — FIRE ◆', bx, byy - BL - 28, 20, '#ff3b30', 'center', true);
+    } else {
+      var cx = 640, cy = 300, L = 46 + (1 - f.lock) * 30;
+      ctx.strokeStyle = f.lock >= 1 ? '#ff3b30' : '#7fe0ff'; ctx.lineWidth = 3;
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (c) {
+        ctx.beginPath(); ctx.moveTo(cx + c[0] * L, cy + c[1] * (L - 18)); ctx.lineTo(cx + c[0] * L, cy + c[1] * L); ctx.lineTo(cx + c[0] * (L - 18), cy + c[1] * L); ctx.stroke();
+      });
+      if (f.lockTarget && f.lockTarget.alive) {
+        txt(ctx, 'LOCK ' + Math.round(f.lock * 100) + '% — ' + Math.round(Math.hypot(f.lockTarget.x - f.px, f.lockTarget.y - f.py)) + 'm', cx - 90, cy - L - 44, 14, f.lock >= 1 ? '#ff5a4a' : '#fff', 'left', true);
+      }
     }
     // warning lights are drawn just below the compass strip (see above)
     // dialogue bar (above cockpit panel, clear of edges)
