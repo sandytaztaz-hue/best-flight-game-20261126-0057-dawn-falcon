@@ -1,0 +1,5 @@
+/* DAWN FALCON — page chrome around the 1280x720 canvas. Dawn gold on deep navy. */
+html, body { margin: 0; padding: 0; background: #0a1018; color: #e8f0f8; font-family: sans-serif; }
+#wrap { width: 1280px; max-width: 100vw; margin: 0 auto; padding: 12px 0 24px; }
+#game { display: block; width: 1280px; max-width: 100vw; height: auto; background: #101c2a; border: 2px solid #3a4a5a; }
+#hint { margin-top: 8px; font-size: 14px; color: #9fb4c8; text-align: center; }
